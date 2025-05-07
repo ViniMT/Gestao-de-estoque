@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoUsuario {
+  estoquista
+  vendedor
+}
+
+model Usuarios {
+  id     Int         @id @default(autoincrement())
+  nome   String
+  email  String
+  senha  String
+  tipo   TipoUsuario
+  Vendas Vendas[]
+
+  @@map("Usuarios")
+}
+
+model Fornecedores {
+  id       Int    @id @default(autoincrement())
+  nome     String
+  cnpj     String
+  telefone Int
+  email    String
+
+  MateriasPrimaCompradas MateriasPrimasComprada[]
+  EstoqueItens           EstoqueItens[]
+
+  @@map("Fornecedores")
+}
+
+model MateriasPrima {
+  id                     Int                    @id @default(autoincrement())
+  idEstoque              Int                    @unique
+  composicao             String
+  idMateriaPrimaComprada Int
+  materiaPrimaComprada   MateriasPrimasComprada @relation(fields: [idMateriaPrimaComprada], references: [id])
+
+  estoque EstoqueItens @relation(fields: [idEstoque], references: [id])
+
+  @@map("materias_prima")
+}
+
+model MateriasPrimasComprada {
+  id             Int             @id @default(autoincrement())
+  nome           String
+  tipo           String
+  quantidade     Int
+  idFornecedor   Int
+  fornecedor     Fornecedores    @relation(fields: [idFornecedor], references: [id])
+  MateriasPrimas MateriasPrima[]
+
+  @@map("Materia_prima_comprada")
+}
+
+model EstoqueItens {
+  id            Int            @id @default(autoincrement())
+  nome          String
+  descricao     String
+  tipo          String
+  unidadeMedida String
+  precoUnitario Float
+  quantidade    Int
+  idFornecedor  Int?
+  fornecedor    Fornecedores?  @relation(fields: [idFornecedor], references: [id])
+  MateriasPrima MateriasPrima?
+  Produtos      Produtos?
+  ItensVenda    ItensVenda[]
+
+  @@map("estoque_itens")
+}
+
+model Produtos {
+  id           Int          @id @default(autoincrement())
+  idEstoque    Int          @unique
+  codigoBarras String
+  marca        String
+  estoque      EstoqueItens @relation(fields: [idEstoque], references: [id])
+
+  @@map("produtos")
+}
+
+enum tipoCliente {
+  PessoaFisica
+  PessoaJuridica
+}
+
+model Clientes {
+  id                  Int      @id @default(autoincrement())
+  nome                String
+  endereco            String
+  telefone            String
+  email               String   @unique
+  tipoCliente         String // Use enum se necessário
+  Vendas              Vendas[]
+
+  @@map("clientes")
+}
+
+enum StatusVenda {
+  PENDENTE
+  FINALIZADA
+  CANCELADA
+}
+
+model Vendas {
+  id         Int         @id @default(autoincrement())
+  dataVenda  DateTime
+  idUsuario  Int
+  idCliente  Int
+  valorTotal Float
+  status     StatusVenda
+  usuario    Usuarios    @relation(fields: [idUsuario], references: [id])
+  cliente    Clientes    @relation(fields: [idCliente], references: [id])
+  ItensVenda ItensVenda[]
+
+  @@map("vendas")
+}
+
+model ItensVenda {
+  id           Int      @id @default(autoincrement())
+  vendaId      Int
+  produtoId    Int
+  quantidade   Int
+  valorUnitario Float
+  venda        Vendas   @relation(fields: [vendaId], references: [id])
+  produto      EstoqueItens @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_venda")
+}
